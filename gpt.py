@@ -133,8 +133,10 @@ class BigramLanguageModel(nn.Module):
     
     def generate(self, idx, max_new_tokens):
         for _ in range(max_new_tokens):
+            # crop idx to the last chunk size token of each row
+            idx_cond = idx[:, -chunk_size:]
             # get predictions
-            logits, loss = self(idx)
+            logits, loss = self(idx_cond)
             logits = logits[:, -1, :]
 
             # apply softmax to get probabilities - converts vector into vector of possibilities
