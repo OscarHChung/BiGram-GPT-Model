@@ -11,6 +11,7 @@ learning_rate = 1e-2
 # ability to run on gpu if the machine has it (much faster)
 device ='cuda' if torch.cuda.is_available() else 'cpu'
 eval_iters = 200
+n_embed = 32
 url = 'http://raw.githubusercontent.com/karpathy/char-rnn/master/data/tinyshakespeare/input.txt'
 
 # get data from Shakespeare text
@@ -68,12 +69,14 @@ def estimate_loss():
 # simple bigram model
 class BigramLanguageModel(nn.Module):
 
-    def __init__(self, vocab_size):
+    def __init__(self):
         super().__init__()
-        self.token_embedding_table = nn.Embedding(vocab_size, vocab_size)
+        self.token_embedding_table = nn.Embedding(vocab_size, n_embed)
+        self.lm_head = nn.Linear(n_embed, vocab_size)
 
     def forward(self, idx, targets=None):
-        logits = self.token_embedding_table(idx)
+        token_embed = self.token_embedding_table(idx)
+        logits = self.lm_head(token_embed)
         
         # converting B, T, C into B, C, T:
         # loss is the penalty for making a bad guess
@@ -104,7 +107,7 @@ class BigramLanguageModel(nn.Module):
         return idx
     
 # defining model to use
-model = BigramLanguageModel(vocab_size)
+model = BigramLanguageModel()
 m = model.to(device)
 
 # using Adam python optimizer
