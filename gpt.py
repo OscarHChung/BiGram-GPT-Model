@@ -5,9 +5,9 @@ from torch.nn import functional as F
 
 batch_size = 32 # number of parallel independent sequences to run
 chunk_size = 8 # max size of the chunks to run algo on
-max_iters = 3000 # max times to run algo
+max_iters = 5000 # max times to run algo
 eval_interval = 300
-learning_rate = 1e-2
+learning_rate = 1e-3
 # ability to run on gpu if the machine has it (much faster)
 device ='cuda' if torch.cuda.is_available() else 'cpu'
 eval_iters = 200
@@ -134,6 +134,7 @@ class BigramLanguageModel(nn.Module):
     def generate(self, idx, max_new_tokens):
         for _ in range(max_new_tokens):
             # crop idx to the last chunk size token of each row
+            # so that the chunk size doesn't overflow
             idx_cond = idx[:, -chunk_size:]
             # get predictions
             logits, loss = self(idx_cond)
