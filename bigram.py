@@ -8,6 +8,7 @@ chunk_size = 8 # max size of the chunks to run algo on
 max_iters = 3000 # max times to run algo
 eval_interval = 300
 learning_rate = 1e-2
+# ability to run on gpu if the machine has it (much faster)
 device ='cuda' if torch.cuda.is_available() else 'cpu'
 eval_iters = 200
 url = 'http://raw.githubusercontent.com/karpathy/char-rnn/master/data/tinyshakespeare/input.txt'
@@ -48,6 +49,8 @@ def get_batch(split):
     y = torch.stack([data[i+1:i+chunk_size+1] for i in ix])
     return x, y
 
+# used to perform validation and blocks leaks from test model
+# disables gradients temporarily
 @torch.no_grad()
 def estimate_loss():
     out = {}
