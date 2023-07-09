@@ -77,12 +77,12 @@ class BigramLanguageModel(nn.Module):
         self.lm_head = nn.Linear(n_embed, vocab_size)
 
     def forward(self, idx, targets=None):
-        BATCH, TIME = idx.shape
+        B, T = idx.shape
 
         # add token and positional embeds
         # get logits based off of that
         token_embed = self.token_embedding_table(idx)
-        positional_embed = self.position_embedding_table(torch.arange(TIME, device=device))
+        positional_embed = self.position_embedding_table(torch.arange(T, device=device))
         x = token_embed + positional_embed
         logits = self.lm_head(x)
         
