@@ -121,15 +121,32 @@ class MultiHeadAttention(nn.Module):
 # adding feed forward mechanism
 class FeedForward(nn.Module):
     # creating a linear layer followed by a non-linear one
+    # this allows for the model to account for non-linear results
     def __init__(self, n_embed):
         super().__init__()
         self.net = nn.Sequential(
             nn.Linear(n_embed, n_embed),
+            # rectified linear activation unit
             nn.ReLU()
         )
     
     def forward(self, x):
         return self.net(x)
+
+
+# adding a transformer block
+class Block(nn.Module):
+    # allows for multiple multihead self-attentions to get called
+    def __init__(self, n_embed, n_head):
+        super().__init__()
+        head_size = n_embed // n_head
+        self.sa = MultiHeadAttention(n_head, head_size)
+        self.feedforward = FeedForward(n_embed)
+
+    def forward(self, x):
+        x = self.sa(x)
+        x = self.feedforward(x)
+        return x
 
 
 # simple bigram model
@@ -140,9 +157,13 @@ class BigramLanguageModel(nn.Module):
         self.token_embedding_table = nn.Embedding(vocab_size, n_embed)
         # keep track of position so that tokens can interact
         self.position_embedding_table = nn.Embedding(chunk_size, n_embed)
-        # creating 4 self-attention heads
-        self.sa_heads = MultiHeadAttention(4, n_embed//4)
-        self.feedforward = FeedForward(n_embed)
+        
+        # creating transformer block 3 times with 4 heads
+        self.blocks = nn.Sequential(
+            Block(n_embed, n_head=4),
+            Block(n_embed, n_head=4),
+            Block(n_embed, n_head=4)
+        )
         self.lm_head = nn.Linear(n_embed, vocab_size)
 
     def forward(self, idx, targets=None):
@@ -153,8 +174,8 @@ class BigramLanguageModel(nn.Module):
         token_embed = self.token_embedding_table(idx)
         positional_embed = self.position_embedding_table(torch.arange(T, device=device))
         x = token_embed + positional_embed
-        x = self.sa_heads(x)
-        x = self.feedforward(x)
+        # calling the transformer block
+        x = self.blocks(x)
         logits = self.lm_head(x)
         
         # converting B, T, C into B, C, T:
