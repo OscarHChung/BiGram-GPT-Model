@@ -104,6 +104,8 @@ class BigramLanguageModel(nn.Module):
         self.token_embedding_table = nn.Embedding(vocab_size, n_embed)
         # keep track of position so that tokens can interact
         self.position_embedding_table = nn.Embedding(chunk_size, n_embed)
+        # creating self attention head
+        self.sa_head = Head(n_embed)
         self.lm_head = nn.Linear(n_embed, vocab_size)
 
     def forward(self, idx, targets=None):
@@ -114,6 +116,7 @@ class BigramLanguageModel(nn.Module):
         token_embed = self.token_embedding_table(idx)
         positional_embed = self.position_embedding_table(torch.arange(T, device=device))
         x = token_embed + positional_embed
+        x = self.sa_head(x)
         logits = self.lm_head(x)
         
         # converting B, T, C into B, C, T:
