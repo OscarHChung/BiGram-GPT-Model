@@ -95,6 +95,19 @@ class Head(nn.Module):
         v = self.value(x)
         out = wei @ v
         return out
+    
+# implementing multi-head attention
+class MultiHeadAttention(nn.Module):
+    def __init__(self, num_heads, head_size):
+        super().__init__()
+        # create x many heads
+        # run them in parallel
+        self.heads = nn.ModuleList([Head(head_size) for _ in range(num_heads)])
+    
+    def forward(self, x):
+        # concatenate the heads' outputs
+        return torch.cat([h(x) for h in self.heads], dim=-1)
+
 
 # simple bigram model
 class BigramLanguageModel(nn.Module):
@@ -104,8 +117,8 @@ class BigramLanguageModel(nn.Module):
         self.token_embedding_table = nn.Embedding(vocab_size, n_embed)
         # keep track of position so that tokens can interact
         self.position_embedding_table = nn.Embedding(chunk_size, n_embed)
-        # creating self attention head
-        self.sa_head = Head(n_embed)
+        # creating 4 self-attention heads
+        self.sa_heads = MultiHeadAttention(4, n_embed//4)
         self.lm_head = nn.Linear(n_embed, vocab_size)
 
     def forward(self, idx, targets=None):
@@ -116,7 +129,7 @@ class BigramLanguageModel(nn.Module):
         token_embed = self.token_embedding_table(idx)
         positional_embed = self.position_embedding_table(torch.arange(T, device=device))
         x = token_embed + positional_embed
-        x = self.sa_head(x)
+        x = self.sa_heads(x)
         logits = self.lm_head(x)
         
         # converting B, T, C into B, C, T:
