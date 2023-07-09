@@ -72,11 +72,19 @@ class BigramLanguageModel(nn.Module):
     def __init__(self):
         super().__init__()
         self.token_embedding_table = nn.Embedding(vocab_size, n_embed)
+        # keep track of position so that tokens can interact
+        self.position_embedding_table = nn.Embedding(chunk_size, n_embed)
         self.lm_head = nn.Linear(n_embed, vocab_size)
 
     def forward(self, idx, targets=None):
+        BATCH, TIME = idx.shape
+
+        # add token and positional embeds
+        # get logits based off of that
         token_embed = self.token_embedding_table(idx)
-        logits = self.lm_head(token_embed)
+        positional_embed = self.position_embedding_table(torch.arange(TIME, device=device))
+        x = token_embed + positional_embed
+        logits = self.lm_head(x)
         
         # converting B, T, C into B, C, T:
         # loss is the penalty for making a bad guess
