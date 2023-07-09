@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 from torch.nn import functional as F
 
+
 batch_size = 32 # number of parallel independent sequences to run
 chunk_size = 8 # max size of the chunks to run algo on
 max_iters = 5000 # max times to run algo
@@ -14,20 +15,24 @@ eval_iters = 200
 n_embed = 32
 url = 'http://raw.githubusercontent.com/karpathy/char-rnn/master/data/tinyshakespeare/input.txt'
 
+
 # get data from Shakespeare text
 urllib.request.urlretrieve(url, filename="input.txt")
 with open('input.txt', 'r', encoding='utf-8') as f:
     text = f.read()
 
+
 # sort all unique characters into a list
 chars = sorted(list(set(text)))
 vocab_size = len(chars)
+
 
 # create simple encryption from integer to character
 stoi = { ch:i for i,ch in enumerate(chars) }
 itos = { i:ch for i,ch in enumerate(chars) }
 encode = lambda s: [stoi[c] for c in s] 
 decode = lambda l: ''.join([itos[i] for i in l])
+
 
 # train and test splits
 # 80% as training data
@@ -36,6 +41,7 @@ data = torch.tensor(encode(text), dtype=torch.long)
 n = int(0.8*len(data))
 train_data = data[:n]
 val_data = data[n:]
+
 
 # load the data
 # inputs are x, targets are y
@@ -49,6 +55,7 @@ def get_batch(split):
     x = torch.stack([data[i:i+chunk_size] for i in ix])
     y = torch.stack([data[i+1:i+chunk_size+1] for i in ix])
     return x, y
+
 
 # used to perform validation and blocks leaks from test model
 # disables gradients temporarily
@@ -65,6 +72,7 @@ def estimate_loss():
         out[split] = losses.mean()
     model.train()
     return out
+
 
 # Self-attention model
 class Head(nn.Module):
@@ -95,7 +103,8 @@ class Head(nn.Module):
         v = self.value(x)
         out = wei @ v
         return out
-    
+
+
 # implementing multi-head attention
 class MultiHeadAttention(nn.Module):
     def __init__(self, num_heads, head_size):
@@ -109,6 +118,20 @@ class MultiHeadAttention(nn.Module):
         return torch.cat([h(x) for h in self.heads], dim=-1)
 
 
+# adding feed forward mechanism
+class FeedForward(nn.Module):
+    # creating a linear layer followed by a non-linear one
+    def __init__(self, n_embed):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Linear(n_embed, n_embed),
+            nn.ReLU()
+        )
+    
+    def forward(self, x):
+        return self.net(x)
+
+
 # simple bigram model
 class BigramLanguageModel(nn.Module):
 
@@ -119,6 +142,7 @@ class BigramLanguageModel(nn.Module):
         self.position_embedding_table = nn.Embedding(chunk_size, n_embed)
         # creating 4 self-attention heads
         self.sa_heads = MultiHeadAttention(4, n_embed//4)
+        self.feedforward = FeedForward(n_embed)
         self.lm_head = nn.Linear(n_embed, vocab_size)
 
     def forward(self, idx, targets=None):
@@ -130,6 +154,7 @@ class BigramLanguageModel(nn.Module):
         positional_embed = self.position_embedding_table(torch.arange(T, device=device))
         x = token_embed + positional_embed
         x = self.sa_heads(x)
+        x = self.feedforward(x)
         logits = self.lm_head(x)
         
         # converting B, T, C into B, C, T:
