@@ -149,12 +149,15 @@ class Block(nn.Module):
         head_size = n_embed // n_head
         self.sa = MultiHeadAttention(n_head, head_size)
         self.feedforward = FeedForward(n_embed)
+        self.ln1 = nn.LayerNorm(n_embed)
+        self.ln2 = nn.LayerNorm(n_embed)
 
     def forward(self, x):
         # implementing residual layer
         # residual layer allows for layers input to use the output from a previous layer
-        x = x + self.sa(x)
-        x = x + self.feedforward(x)
+        # implementing layer norm before each step (self-attention and feed forward)
+        x = x + self.sa(self.ln1(x))
+        x = x + self.feedforward(self.ln2(x))
         return x
 
 
@@ -171,7 +174,8 @@ class BigramLanguageModel(nn.Module):
         self.blocks = nn.Sequential(
             Block(n_embed, n_head=4),
             Block(n_embed, n_head=4),
-            Block(n_embed, n_head=4)
+            Block(n_embed, n_head=4),
+            nn.LayerNorm(n_embed)
         )
         self.lm_head = nn.Linear(n_embed, vocab_size)
 
