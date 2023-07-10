@@ -112,10 +112,14 @@ class MultiHeadAttention(nn.Module):
         # create x many heads
         # run them in parallel
         self.heads = nn.ModuleList([Head(head_size) for _ in range(num_heads)])
+        # proj transforms the layer to become linear
+        self.proj = nn.Linear(n_embed, n_embed)
     
     def forward(self, x):
         # concatenate the heads' outputs
-        return torch.cat([h(x) for h in self.heads], dim=-1)
+        out = torch.cat([h(x) for h in self.heads], dim=-1)
+        out = self.proj(out)
+        return out
 
 
 # adding feed forward mechanism
@@ -125,9 +129,12 @@ class FeedForward(nn.Module):
     def __init__(self, n_embed):
         super().__init__()
         self.net = nn.Sequential(
-            nn.Linear(n_embed, n_embed),
+            # edited the inner layer of feed forward to be multiplied by 4 in channel size
+            # this allows for better non-linear results to match the residual layer addition
+            nn.Linear(n_embed, 4 * n_embed),
             # rectified linear activation unit
-            nn.ReLU()
+            nn.ReLU(),
+            nn.Linear(4 * n_embed, n_embed)
         )
     
     def forward(self, x):
@@ -144,8 +151,10 @@ class Block(nn.Module):
         self.feedforward = FeedForward(n_embed)
 
     def forward(self, x):
-        x = self.sa(x)
-        x = self.feedforward(x)
+        # implementing residual layer
+        # residual layer allows for layers input to use the output from a previous layer
+        x = x + self.sa(x)
+        x = x + self.feedforward(x)
         return x
 
 
