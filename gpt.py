@@ -4,15 +4,19 @@ import torch.nn as nn
 from torch.nn import functional as F
 
 
-batch_size = 32 # number of parallel independent sequences to run
-chunk_size = 8 # max size of the chunks to run algo on
+batch_size = 64 # number of parallel independent sequences to run
+chunk_size = 256 # max size of the chunks to run algo on
 max_iters = 5000 # max times to run algo
-eval_interval = 300
-learning_rate = 1e-3
+eval_interval = 500
+learning_rate = 3e-4
 # ability to run on gpu if the machine has it (much faster)
 device ='cuda' if torch.cuda.is_available() else 'cpu'
 eval_iters = 200
-n_embed = 32
+n_embed = 384
+n_head = 6
+n_layer = 6
+# dropout drops certain amounts of nodes during testing to provide more distinct sub NNs
+dropout = 0.2
 url = 'http://raw.githubusercontent.com/karpathy/char-rnn/master/data/tinyshakespeare/input.txt'
 
 
@@ -83,6 +87,8 @@ class Head(nn.Module):
         self.query = nn.Linear(n_embed, head_size, bias=False)
         self.value = nn.Linear(n_embed, head_size, bias=False)
         self.register_buffer('tril', torch.tril(torch.ones(chunk_size, chunk_size)))
+
+        self.dropout = nn.Dropout(dropout)
     
     def forward(self, x):
         # input of size (batch, time-step, channels)
@@ -99,6 +105,9 @@ class Head(nn.Module):
         wei = wei.masked_fill(self.tril[:T, :T] == 0, float('-inf'))
         # softmax fixes the distribution to be sum up to 1 per row
         wei = F.softmax(wei, dim=-1)
+
+        wei = self.dropout(wei)
+
         # perform the weighted aggregation of the values
         v = self.value(x)
         out = wei @ v
@@ -114,11 +123,12 @@ class MultiHeadAttention(nn.Module):
         self.heads = nn.ModuleList([Head(head_size) for _ in range(num_heads)])
         # proj transforms the layer to become linear
         self.proj = nn.Linear(n_embed, n_embed)
+        self.dropout = nn.Dropout(dropout)
     
     def forward(self, x):
         # concatenate the heads' outputs
         out = torch.cat([h(x) for h in self.heads], dim=-1)
-        out = self.proj(out)
+        out = self.dropout(self.proj(out))
         return out
 
 
@@ -134,7 +144,8 @@ class FeedForward(nn.Module):
             nn.Linear(n_embed, 4 * n_embed),
             # rectified linear activation unit
             nn.ReLU(),
-            nn.Linear(4 * n_embed, n_embed)
+            nn.Linear(4 * n_embed, n_embed),
+            nn.Dropout(dropout)
         )
     
     def forward(self, x):
@@ -170,13 +181,10 @@ class BigramLanguageModel(nn.Module):
         # keep track of position so that tokens can interact
         self.position_embedding_table = nn.Embedding(chunk_size, n_embed)
         
-        # creating transformer block 3 times with 4 heads
-        self.blocks = nn.Sequential(
-            Block(n_embed, n_head=4),
-            Block(n_embed, n_head=4),
-            Block(n_embed, n_head=4),
-            nn.LayerNorm(n_embed)
-        )
+        # creating transformer block _ times with n_layer heads
+        self.blocks = nn.Sequential(*[Block(n_embed, n_head=n_head) for _ in range(n_layer)])
+        # final layer norm
+        self.ln_final = nn.LayerNorm(n_embed)
         self.lm_head = nn.Linear(n_embed, vocab_size)
 
     def forward(self, idx, targets=None):
