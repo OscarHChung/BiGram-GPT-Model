@@ -1,7 +1,6 @@
 # BiGram-GPT-Model
 
-This project takes a text file containing human speech from either the internet or the user's local computer and
-emulates the linguistics of the file using the BiGram GPT Model.
+GPT that takes a human speech text file and emulates the linguistics of the file using the BiGram Model.
 
 The program makes use of multi-head attention, feedforwards, dropouts, transformer blocks, layer norms, and residual layers.
 It also has the ability to run on a GPU with CUDA capabilities. It uses the Adam optimizer and of course, BiGram model.
