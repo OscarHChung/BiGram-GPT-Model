@@ -1,4 +1,4 @@
-# BiGram-GPT-Model
+# GPT-Model
 
 GPT that takes a human speech text file and emulates the linguistics of the file using the BiGram Model.
 
