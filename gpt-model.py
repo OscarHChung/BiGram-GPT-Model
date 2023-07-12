@@ -17,14 +17,15 @@ n_head = 6
 n_layer = 6
 # dropout drops certain amounts of nodes during testing to provide more distinct sub NNs
 dropout = 0.2
-url = 'http://raw.githubusercontent.com/karpathy/char-rnn/master/data/tinyshakespeare/input.txt'
+# get data from internet
+url = 'INSERT URL HERE'
 
 
-# get data from Shakespeare text
+# set data as a input text file so we can call on it later
 urllib.request.urlretrieve(url, filename="input.txt")
 with open('input.txt', 'r', encoding='utf-8') as f:
     text = f.read()
-
+    
 
 # sort all unique characters into a list
 chars = sorted(list(set(text)))
@@ -58,6 +59,7 @@ def get_batch(split):
     # stack a bunch of torch rows on top to get a tensor matrix
     x = torch.stack([data[i:i+chunk_size] for i in ix])
     y = torch.stack([data[i+1:i+chunk_size+1] for i in ix])
+    x, y = x.to(device), y.to(device)
     return x, y
 
 
