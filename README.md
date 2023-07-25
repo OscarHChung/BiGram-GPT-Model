@@ -1,6 +1,7 @@
 # GPT-Model
 
-GPT that takes a human speech text file and emulates the linguistics of the file using the bigram model.
+GPT model that can take a text file from anywhere on the internet and imitate the linguistic style of the text
+
 
 The program makes use of multi-head attention, feedforwards, dropouts, transformer blocks, layer norms, and residual layers.
 It also has the ability to run on a GPU with CUDA capabilities. It uses the Adam optimizer and of course, bigram model.
