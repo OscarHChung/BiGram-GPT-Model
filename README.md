@@ -1,4 +1,4 @@
-# GPT-Model Linguistic-Style-Imitator
+# GPT-Model
 
 GPT model that can take a text file from anywhere on the internet and imitate the linguistic style of the text
 
