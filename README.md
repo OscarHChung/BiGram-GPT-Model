@@ -10,4 +10,4 @@ This repository has 2 versions of a GPT model. The more newer version is the gpt
 The older version is the prototype.py file, which contains a simpler, non fine-tuned version that runs in 1 min. The input.txt
 file contains most of J. Cole's published lyrics (which was originally parsed from the internet), and is used as a default input.
 
-DISCLAIMER: MAY HAVE MISSING OR OUTDATED PARTS
+**DISCLAIMER: MAY HAVE MISSING OR OUTDATED PARTS**
